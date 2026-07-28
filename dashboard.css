@@ -540,3 +540,19 @@ body {
 .btn-principal:hover {
     background-color: #187de4;
 }
+/* Contenedor de la barra de progreso */
+.barra {
+    background: #F1F5F9;
+    height: 10px;
+    border-radius: 5px;
+    overflow: hidden;
+    width: 100%;
+}
+
+/* Relleno dinámico que cambia de ancho según el porcentaje */
+.progreso {
+    background: #2563EB;
+    height: 100%;
+    border-radius: 5px;
+    transition: width 0.6s ease;
+}

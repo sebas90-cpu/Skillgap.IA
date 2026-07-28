@@ -17,6 +17,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_POST['competencia_id']) || 
 
 $persona_id = $_SESSION['id'];
 $competencia_id = intval($_POST['competencia_id']);
+// Recogemos también el caso_id si viene por POST (asegúrate de incluirlo en tu formulario)
+$caso_id = isset($_POST['caso_id']) ? intval($_POST['caso_id']) : 1; 
+
 $respuestas_recibidas = $_POST['respuestas']; // Arreglo [pregunta_id => respuesta_texto]
 
 // 3. Consultar datos de la competencia
@@ -33,6 +36,7 @@ $competencia = $resComp->fetch_assoc();
 
 // 4. Guardar las respuestas en la base de datos y construir el prompt
 $prompt_casos = "";
+$todas_las_respuestas_texto = ""; // Para guardarlas juntas en la tabla evaluaciones si es necesario
 
 $stmtInsertResp = $conexion->prepare("INSERT INTO respuestas (persona_id, pregunta_id, respuesta) VALUES (?, ?, ?)");
 
@@ -45,9 +49,12 @@ foreach ($respuestas_recibidas as $pregunta_id => $texto_respuesta) {
         continue;
     }
 
-    // A. Guardar respuesta en la BD
+    // A. Guardar respuesta individual en la BD
     $stmtInsertResp->bind_param("iis", $persona_id, $pregunta_id, $texto_respuesta);
     $stmtInsertResp->execute();
+
+    // Acumular texto para la tabla evaluaciones
+    $todas_las_respuestas_texto .= "Pregunta ID {$pregunta_id}: " . $texto_respuesta . "\n";
 
     // B. Obtener el enunciado de la pregunta
     $stmtPreg = $conexion->prepare("SELECT pregunta FROM preguntas WHERE id = ?");
@@ -81,8 +88,8 @@ $user_prompt = "Competencia evaluada: " . $competencia['nombre'] . "\n"
              . "A continuación se presentan los casos y respuestas entregadas por el aprendiz:\n\n"
              . $prompt_casos;
 
-// 6. Configurar la llamada a la API de Gemini (Utilizando la constante segura)
-$endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" . GEMINI_API_KEY;
+// 6. Configurar la llamada a la API de Gemini
+$endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=" . GEMINI_API_KEY;
 $payload = [
     "system_instruction" => [
         "parts" => [
@@ -137,8 +144,8 @@ if (!$datos_ia) {
 }
 
 // Extraer variables recibidas del JSON
-$nivel          = isset($datos_ia['nivel']) ? $datos_ia['nivel'] : 'Intermedio';
-$puntaje         = isset($datos_ia['puntaje']) ? intval($datos_ia['puntaje']) : 50;
+$nivel           = isset($datos_ia['nivel']) ? $datos_ia['nivel'] : 'Intermedio';
+$puntaje         = isset($datos_ia['puntaje']) ? floatval($datos_ia['puntaje']) : 50;
 $fortalezas      = isset($datos_ia['fortalezas']) ? implode("\n• ", $datos_ia['fortalezas']) : '';
 $oportunidades   = isset($datos_ia['oportunidades']) ? implode("\n• ", $datos_ia['oportunidades']) : '';
 $recomendaciones = isset($datos_ia['recomendaciones']) ? implode("\n• ", $datos_ia['recomendaciones']) : '';
@@ -153,6 +160,12 @@ $stmtIA = $conexion->prepare("INSERT INTO analisis_ia (persona_id, competencia_i
 $stmtIA->bind_param("iisssss", $persona_id, $competencia_id, $nivel, $fortalezas, $oportunidades, $recomendaciones, $analisis_general);
 
 if ($stmtIA->execute()) {
+
+    // 8.1 Guardar los datos en la tabla 'evaluaciones' para el historial (Mis Evaluaciones)
+    $stmtEval = $conexion->prepare("INSERT INTO evaluaciones (persona_id, caso_id, respuesta, puntaje, retroalimentacion, fecha) VALUES (?, ?, ?, ?, ?, NOW())");
+    $stmtEval->bind_param("iisds", $persona_id, $caso_id, $todas_las_respuestas_texto, $puntaje, $analisis_general);
+    $stmtEval->execute();
+
     // 9. Actualizar o crear el registro en 'persona_competencia' para la gráfica del Dashboard
     $stmtCheckPC = $conexion->prepare("SELECT id FROM persona_competencia WHERE persona = ? AND competencia = ?");
     $stmtCheckPC->bind_param("ii", $persona_id, $competencia_id);
@@ -169,7 +182,37 @@ if ($stmtIA->execute()) {
         $stmtInsertPC->bind_param("iiii", $persona_id, $competencia_id, $antes_simulado, $puntaje);
         $stmtInsertPC->execute();
     }
+
+    // 10. Actualizar o insertar el puntaje en la tabla 'progreso' con los campos exactos del diagrama
+    $stmtCheckProg = $conexion->prepare("SELECT id FROM progreso WHERE persona_id = ? AND competencia_id = ?");
+    if (!$stmtCheckProg) {
+        die("Error en prepare (SELECT progreso): " . $conexion->error);
+    }
+    
+    $stmtCheckProg->bind_param("ii", $persona_id, $competencia_id);
+    $stmtCheckProg->execute();
+    $resProg = $stmtCheckProg->get_result();
+
+    if ($resProg->num_rows > 0) {
+        $stmtUpdateProg = $conexion->prepare("UPDATE progreso SET nivel_actual = ?, ultima_actualizacion = NOW() WHERE persona_id = ? AND competencia_id = ?");
+        if (!$stmtUpdateProg) {
+            die("Error en prepare (UPDATE progreso): " . $conexion->error);
+        }
+        $stmtUpdateProg->bind_param("dii", $puntaje, $persona_id, $competencia_id);
+        $stmtUpdateProg->execute();
+    } else {
+        $stmtInsertProg = $conexion->prepare("INSERT INTO progreso (persona_id, competencia_id, nivel_inicial, nivel_actual, ultima_actualizacion) VALUES (?, ?, ?, ?, NOW())");
+        if (!$stmtInsertProg) {
+            die("Error en prepare (INSERT progreso): " . $conexion->error);
+        }
+        $stmtInsertProg->bind_param("iidd", $persona_id, $competencia_id, $puntaje, $puntaje);
+        $stmtInsertProg->execute();
+    }
+    
     // Redirigir a la vista de resultados de este módulo específico
     header("Location: resultado_ia.php?competencia_id=" . $competencia_id);
     exit();
-}   
+} else {
+    die("Error al guardar el análisis de la IA en la base de datos.");
+}
+?>

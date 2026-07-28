@@ -194,6 +194,7 @@ try {
 
                     <form id="formEvaluacion" action="procesar_resultado.php" method="POST">
                         <input type="hidden" name="competencia_id" value="<?php echo $competencia_id; ?>">
+                        <input type="hidden" name="caso_id" value="<?php echo $competencia_id; ?>"> <!-- Enlace opcional para la tabla evaluaciones -->
 
                         <?php if (!empty($preguntas)): ?>
                             <?php foreach ($preguntas as $index => $preg): ?>
