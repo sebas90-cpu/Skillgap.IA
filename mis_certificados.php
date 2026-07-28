@@ -9,7 +9,7 @@ if (!isset($_SESSION['id']) && !isset($_SESSION['usuario']) && !isset($_SESSION[
 
 require_once 'conexion.php';
 
-// Activar reporte de errores
+// Activar reporte temporal de errores de SQL para diagnóstico si algo falla
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 // Variables de usuario robustas
@@ -20,12 +20,13 @@ $fichas_programa = $_SESSION['programa'] ?? 'Programa Formativo';
 $certificados_disponibles = [];
 
 try {
-    // Consultar competencias aprobadas con nota >= 70 (basado en la tabla progreso o analisis_ia)
-    $sql_cert = "SELECT c.nombre as competencia_nombre, p.nivel_actual as porcentaje, p.fecha_actualizacion as fecha 
+    // Consulta corregida usando 'ultima_actualizacion' tal como está en tu base de datos
+    $sql_cert = "SELECT c.nombre as competencia_nombre, p.nivel_actual as porcentaje, p.ultima_actualizacion as fecha 
                  FROM progreso p 
                  INNER JOIN competencias c ON p.competencia_id = c.id 
                  WHERE p.persona_id = ? AND p.nivel_actual >= 70 
                  ORDER BY p.nivel_actual DESC";
+                 
     $stmt = $conexion->prepare($sql_cert);
     $stmt->bind_param("i", $persona_id);
     $stmt->execute();
