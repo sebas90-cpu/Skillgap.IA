@@ -1,18 +1,18 @@
 <?php
 session_start();
 
-// 1. Validar sesión activa
-if (!isset($_SESSION['id_usuario']) && !isset($_SESSION['usuario']) && !isset($_SESSION['id']) && !isset($_SESSION['persona_id'])) {
+// 1. Validar sesión activa (Asegurando la lectura correcta de la sesión del login)
+if (!isset($_SESSION['id']) && !isset($_SESSION['usuario']) && !isset($_SESSION['persona_id']) && !isset($_SESSION['id_usuario'])) {
     header("Location: login.php");
     exit();
 }
 
 require_once 'conexion.php';
 
-// Activar reporte de errores
+// Activar reporte de errores de MySQLi para control estricto
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-// Variables de usuario
+// Variables de usuario robustas según los estándares de sesión comunes
 $persona_id = $_SESSION['persona_id'] ?? $_SESSION['id_usuario'] ?? $_SESSION['id'] ?? 1;
 $nombre_aprendiz = $_SESSION['nombre'] ?? $_SESSION['usuario'] ?? 'Aprendiz';
 $fichas_programa = $_SESSION['programa'] ?? 'Programa Formativo';
@@ -47,18 +47,22 @@ try {
         $preguntas = $stmt_preg->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 
-    // Cargar avance de las 5 competencias del aprendiz (para el panel inferior)
-    $sql_progreso = "SELECT c.nombre as tema, COALESCE(p.nivel_actual, 0) as porcentaje 
-                    FROM competencias c 
-                    LEFT JOIN progreso p ON c.id = p.competencia_id AND p.persona_id = ? 
-                    LIMIT 5";
+    // Cargar avance de las competencias del aprendiz usando la tabla de control del dashboard
+    $sql_progreso = "SELECT c.nombre as tema, COALESCE(pc.despues, 0) as porcentaje 
+                     FROM competencias c 
+                     LEFT JOIN persona_competencia pc ON c.id = pc.competencia AND pc.persona = ? 
+                     LIMIT 5";
     $stmt_prog = $conexion->prepare($sql_progreso);
     $stmt_prog->bind_param("i", $persona_id);
     $stmt_prog->execute();
     $result_competencias = $stmt_prog->get_result()->fetch_all(MYSQLI_ASSOC);
 
 } catch (Exception $e) {
-    // Manejo seguro en caso de error SQL
+    // Captura de errores visibles para evitar pantallas en blanco inesperadas
+    echo "<div style='background: #fee2e2; color: #991b1b; padding: 20px; font-family: monospace; margin: 20px; border-radius: 8px;'>";
+    echo "<strong>Error en la consulta o base de datos:</strong> " . htmlspecialchars($e->getMessage());
+    echo "</div>";
+    exit();
 }
 ?>
 <!DOCTYPE html>
@@ -151,7 +155,7 @@ try {
                 <?php if ($competencia_id === 0): ?>
 
                     <h2>Selecciona la Competencia a Evaluar</h2>
-                    <p style="color: #64748B; margin-bottom: 25px;">Elige uno de tus 5 módulos de formación para iniciar el cuestionario.</p>
+                    <p style="color: #64748B; margin-bottom: 25px;">Elige uno de tus módulos de formación para iniciar el cuestionario de casos prácticos.</p>
 
                     <div class="grid-competencias">
                         <?php foreach ($competencias_disponibles as $comp): ?>
@@ -173,7 +177,7 @@ try {
                     <div class="quiz-header">
                         <div>
                             <h2><i class="ri-robot-line" style="color: #2563EB;"></i> Módulo: <?php echo htmlspecialchars($nombre_competencia); ?></h2>
-                            <small style="color: #64748B;">Responde detalladamente las 5 preguntas del caso práctico.</small>
+                            <small style="color: #64748B;">Responde detalladamente las preguntas del caso práctico.</small>
                         </div>
                     </div>
 
@@ -218,9 +222,9 @@ try {
 
             </div>
 
-            <!-- SECCIÓN INFERIOR: RESUMEN DE LAS 5 COMPETENCIAS -->
+            <!-- SECCIÓN INFERIOR: RESUMEN DE COMPETENCIAS -->
             <div class="panel" style="margin-top: 35px;">
-                <h2>Mis Competencias (5 Módulos)</h2>
+                <h2>Progreso en tus Competencias</h2>
                 <?php if (!empty($result_competencias)): ?>
                     <?php foreach ($result_competencias as $comp): ?>
                         <div class="competencia">
@@ -232,7 +236,7 @@ try {
                     <?php endforeach; ?>
                 <?php else: ?>
                     <p style="color: #64748B; font-size: 14px; margin-top: 10px;">
-                        Tus avances en las 5 competencias se actualizarán cuando completes tus respuestas.
+                        Tus avances se actualizarán cuando completes tus respuestas.
                     </p>
                 <?php endif; ?>
             </div>

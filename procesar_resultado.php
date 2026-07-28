@@ -8,9 +8,7 @@ if (!isset($_SESSION['id'])) {
 }
 
 require_once("conexion.php");
-
-// CLAVE API DE GOOGLE GEMINI CONFIGURADA
-define('GEMINI_API_KEY', 'AQ.Ab8RN6IhCdjOxtoAcyFrPAgMotrZfQWtBvYIwhd2T_IS4sSmNg'); 
+require_once("config.php"); // <--- Cargamos el archivo seguro con la constante GEMINI_API_KEY
 
 // 2. Validar que la petición sea POST y contenga los datos necesarios
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_POST['competencia_id']) || empty($_POST['respuestas'])) {
@@ -83,8 +81,8 @@ $user_prompt = "Competencia evaluada: " . $competencia['nombre'] . "\n"
              . "A continuación se presentan los casos y respuestas entregadas por el aprendiz:\n\n"
              . $prompt_casos;
 
-// 6. Configurar la llamada a la API de Gemini (Uso del modelo gemini-1.5-flash)
-$endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=" . GEMINI_API_KEY;
+// 6. Configurar la llamada a la API de Gemini (Utilizando la constante segura)
+$endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" . GEMINI_API_KEY;
 $payload = [
     "system_instruction" => [
         "parts" => [
@@ -139,7 +137,7 @@ if (!$datos_ia) {
 }
 
 // Extraer variables recibidas del JSON
-$nivel           = isset($datos_ia['nivel']) ? $datos_ia['nivel'] : 'Intermedio';
+$nivel          = isset($datos_ia['nivel']) ? $datos_ia['nivel'] : 'Intermedio';
 $puntaje         = isset($datos_ia['puntaje']) ? intval($datos_ia['puntaje']) : 50;
 $fortalezas      = isset($datos_ia['fortalezas']) ? implode("\n• ", $datos_ia['fortalezas']) : '';
 $oportunidades   = isset($datos_ia['oportunidades']) ? implode("\n• ", $datos_ia['oportunidades']) : '';
@@ -171,7 +169,7 @@ if ($stmtIA->execute()) {
         $stmtInsertPC->bind_param("iiii", $persona_id, $competencia_id, $antes_simulado, $puntaje);
         $stmtInsertPC->execute();
     }
-// Redirigir a la vista de resultados de este módulo específico
+    // Redirigir a la vista de resultados de este módulo específico
     header("Location: resultado_ia.php?competencia_id=" . $competencia_id);
     exit();
-}
+}   
