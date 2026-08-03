@@ -17,21 +17,16 @@ $apellido   = trim($_POST['apellido']);
 $documento  = trim($_POST['documento']);
 $correo     = trim($_POST['correo']);
 $usuario    = trim($_POST['usuario']);
-$password   = $_POST['password'];
+$password   = $_POST['password']; // Contraseña en texto plano
 
 // Programa
 if ($_POST['programa'] == "Otro") {
-
     $programa = trim($_POST['otroPrograma']);
-
 } else {
-
     $programa = trim($_POST['programa']);
-
 }
 
-// Encriptar contraseña
-$passwordHash = password_hash($password, PASSWORD_DEFAULT);
+// (Se eliminó el password_hash para guardar la contraseña tal cual)
 
 //==========================
 // Verificar documento
@@ -56,7 +51,6 @@ if($stmt->num_rows > 0){
 <body>
 
 <script>
-
 Swal.fire({
     icon:'error',
     title:'Documento existente',
@@ -64,7 +58,6 @@ Swal.fire({
 }).then(()=>{
     window.location='registro.php';
 });
-
 </script>
 
 </body>
@@ -99,7 +92,6 @@ if($stmt->num_rows > 0){
 <body>
 
 <script>
-
 Swal.fire({
     icon:'error',
     title:'Correo existente',
@@ -107,7 +99,6 @@ Swal.fire({
 }).then(()=>{
     window.location='registro.php';
 });
-
 </script>
 
 </body>
@@ -142,7 +133,6 @@ if($stmt->num_rows > 0){
 <body>
 
 <script>
-
 Swal.fire({
     icon:'error',
     title:'Usuario existente',
@@ -150,7 +140,6 @@ Swal.fire({
 }).then(()=>{
     window.location='registro.php';
 });
-
 </script>
 
 </body>
@@ -201,7 +190,7 @@ $stmt->bind_param(
     $correo,
     $programa,
     $usuario,
-    $passwordHash
+    $password // <--- Aquí se envía la contraseña en texto plano
 );
 
 if($stmt->execute()){
@@ -216,7 +205,6 @@ if($stmt->execute()){
 <body>
 
 <script>
-
 Swal.fire({
     icon:'success',
     title:'Registro exitoso',
@@ -224,16 +212,13 @@ Swal.fire({
 }).then(()=>{
     window.location='login.php';
 });
-
 </script>
 
 </body>
 </html>
 
 <?php
-
 }else{
-
 ?>
 
 <!DOCTYPE html>
@@ -245,7 +230,6 @@ Swal.fire({
 <body>
 
 <script>
-
 Swal.fire({
     icon:'error',
     title:'Error',
@@ -253,17 +237,14 @@ Swal.fire({
 }).then(()=>{
     window.location='registro.php';
 });
-
 </script>
 
 </body>
 </html>
 
 <?php
-
 }
 
 $stmt->close();
 $conexion->close();
-
 ?>

@@ -15,14 +15,12 @@ if (formLogin) {
         if (password.type === "password") {
 
             password.type = "text";
-
             verPassword.classList.remove("fa-eye");
             verPassword.classList.add("fa-eye-slash");
 
         } else {
 
             password.type = "password";
-
             verPassword.classList.remove("fa-eye-slash");
             verPassword.classList.add("fa-eye");
 
@@ -43,7 +41,20 @@ if (formLogin) {
             Swal.fire({
                 icon: "warning",
                 title: "Campos incompletos",
-                text: "Debe ingresar su usuario y contraseña."
+                text: "Debe ingresar su correo y contraseña."
+            });
+
+            return;
+        }
+
+        // Validación específica para detectar errores comunes como "@gamil.com"
+        if (usuario.includes("@gamil.com")) {
+            e.preventDefault();
+
+            Swal.fire({
+                icon: "warning",
+                title: "¿Quisiste decir gmail.com?",
+                text: "Detectamos 'gamil.com' en tu correo. Por favor, corrígelo antes de continuar."
             });
 
             return;
@@ -56,20 +67,20 @@ if (formLogin) {
             Swal.fire({
                 icon: "warning",
                 title: "Usuario inválido",
-                text: "El usuario debe tener al menos 4 caracteres."
+                text: "El campo de usuario o correo debe ser válido."
             });
 
             return;
         }
 
-        if (clave.length < 8) {
+        if (clave.length < 4) { // Ajustado a 4 o lo que requieras para tus pruebas
 
             e.preventDefault();
 
             Swal.fire({
                 icon: "warning",
                 title: "Contraseña inválida",
-                text: "La contraseña debe tener al menos 8 caracteres."
+                text: "La contraseña es muy corta."
             });
 
             return;
