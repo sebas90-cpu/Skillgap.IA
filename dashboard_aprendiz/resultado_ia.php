@@ -1,15 +1,17 @@
 <?php
 session_start();
 
-// 1. Validar sesión activa
-if (!isset($_SESSION['id'])) {
-    header("Location: login.php");
+// 1. Cargar conexión desde la raíz del proyecto
+require_once __DIR__ . '/../conexion.php';
+
+// Validar sesión con soporte para múltiples nombres de llaves de usuario
+if (!isset($_SESSION['id']) && !isset($_SESSION['usuario']) && !isset($_SESSION['persona_id']) && !isset($_SESSION['id_usuario'])) {
+    $redirect_url = defined('BASE_URL') ? BASE_URL . "login.php" : "login.php";
+    header("Location: " . $redirect_url);
     exit();
 }
 
-require_once("conexion.php");
-
-$persona_id = $_SESSION['id'];
+$persona_id = $_SESSION['persona_id'] ?? $_SESSION['id_usuario'] ?? $_SESSION['id'] ?? 0;
 $competencia_id = isset($_GET['competencia_id']) ? intval($_GET['competencia_id']) : 0;
 
 if ($competencia_id === 0) {
@@ -36,16 +38,49 @@ if ($resultado->num_rows === 0) {
 
 $evaluacion = $resultado->fetch_assoc();
 
-// Obtener datos del usuario para la barra superior
+// Datos del usuario para la barra superior
 $nombre_aprendiz = $_SESSION['nombre'] ?? $_SESSION['usuario'] ?? 'Aprendiz';
 $fichas_programa = $_SESSION['programa'] ?? 'Programa Formativo';
 
-// Buscar puntaje en la tabla de progreso/competencias si lo guardaste ahí
+// 3. Obtener el puntaje actualizado desde 'persona_competencia' o 'progreso'
 $stmtPC = $conexion->prepare("SELECT despues FROM persona_competencia WHERE persona = ? AND competencia = ?");
 $stmtPC->bind_param("ii", $persona_id, $competencia_id);
 $stmtPC->execute();
 $resPC = $stmtPC->get_result();
-$puntaje = ($resPC->num_rows > 0) ? $resPC->fetch_assoc()['despues'] : 80;
+
+if ($resPC->num_rows > 0) {
+    $puntaje = $resPC->fetch_assoc()['despues'];
+} else {
+    // Intentar buscar en la tabla progreso
+    $stmtProg = $conexion->prepare("SELECT nivel_actual FROM progreso WHERE persona_id = ? AND competencia_id = ?");
+    $stmtProg->bind_param("ii", $persona_id, $competencia_id);
+    $stmtProg->execute();
+    $resProg = $stmtProg->get_result();
+    $puntaje = ($resProg->num_rows > 0) ? $resProg->fetch_assoc()['nivel_actual'] : 75;
+}
+
+// Función helper para renderizar texto plano o con viñetas
+function renderizarListadoTexto($texto) {
+    if (empty(trim($texto))) {
+        return '<p style="color: #94A3B8; font-style: italic;">Sin observaciones registradas.</p>';
+    }
+    
+    // Si contiene viñetas, convertirlo en lista HTML limpia
+    if (strpos($texto, '•') !== false) {
+        $lineas = explode("\n", $texto);
+        $html = '<ul style="margin: 0; padding-left: 20px; color: #475569;">';
+        foreach ($lineas as $linea) {
+            $limpia = trim(str_replace('•', '', $linea));
+            if (!empty($limpia)) {
+                $html .= '<li style="margin-bottom: 6px;">' . htmlspecialchars($limpia) . '</li>';
+            }
+        }
+        $html .= '</ul>';
+        return $html;
+    }
+
+    return '<p>' . nl2br(htmlspecialchars($texto)) . '</p>';
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -111,7 +146,6 @@ $puntaje = ($resPC->num_rows > 0) ? $resPC->fetch_assoc()['despues'] : 80;
             color: #475569;
             line-height: 1.6;
             margin: 0;
-            padding-left: 15px;
         }
         .analisis-general-box {
             background: #F0FDF4;
@@ -124,6 +158,9 @@ $puntaje = ($resPC->num_rows > 0) ? $resPC->fetch_assoc()['despues'] : 80;
             color: #166534;
             margin-bottom: 10px;
             font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         .analisis-general-box p {
             color: #15803D;
@@ -212,7 +249,7 @@ $puntaje = ($resPC->num_rows > 0) ? $resPC->fetch_assoc()['despues'] : 80;
                     </div>
                     <div style="text-align: right;">
                         <span class="badge-nivel">Nivel: <?php echo htmlspecialchars($evaluacion['nivel']); ?></span>
-                        <div style="font-size: 13px; color: #64748B; margin-top: 6px;">Puntaje: <strong><?php echo $puntaje; ?>/100</strong></div>
+                        <div style="font-size: 13px; color: #64748B; margin-top: 6px;">Puntaje: <strong><?php echo round($puntaje, 1); ?>/100</strong></div>
                     </div>
                 </div>
 
@@ -222,22 +259,22 @@ $puntaje = ($resPC->num_rows > 0) ? $resPC->fetch_assoc()['despues'] : 80;
                     <p><?php echo nl2br(htmlspecialchars($evaluacion['analisis_completo'])); ?></p>
                 </div>
 
-                <!-- CUADRICULA DE FORTALEZAS, OPORTUNIDADES Y RECOMENDACIONES -->
+                <!-- CUADRÍCULA DE FORTALEZAS, OPORTUNIDADES Y RECOMENDACIONES -->
                 <div class="grid-resultados">
                     
                     <div class="card-caja">
                         <h4 style="color: #059669;"><i class="ri-checkbox-circle-line"></i> Fortalezas Detectadas</h4>
-                        <p><?php echo nl2br(htmlspecialchars($evaluacion['fortalezas'])); ?></p>
+                        <?php echo renderizarListadoTexto($evaluacion['fortalezas']); ?>
                     </div>
 
                     <div class="card-caja">
                         <h4 style="color: #D97706;"><i class="ri-error-warning-line"></i> Oportunidades de Mejora</h4>
-                        <p><?php echo nl2br(htmlspecialchars($evaluacion['oportunidades'])); ?></p>
+                        <?php echo renderizarListadoTexto($evaluacion['oportunidades']); ?>
                     </div>
 
                     <div class="card-caja">
                         <h4 style="color: #2563EB;"><i class="ri-lightbulb-line"></i> Recomendaciones</h4>
-                        <p><?php echo nl2br(htmlspecialchars($evaluacion['recomendaciones'])); ?></p>
+                        <?php echo renderizarListadoTexto($evaluacion['recomendaciones']); ?>
                     </div>
 
                 </div>

@@ -1,13 +1,17 @@
 <?php
 session_start();
 
-// 1. Validar sesión activa
+// 1. Cargar la conexión desde la raíz
+require_once __DIR__ . '/../conexion.php';
+
+// 2. Validar sesión activa (usando la constante BASE_URL)
 if (!isset($_SESSION['id']) && !isset($_SESSION['usuario']) && !isset($_SESSION['persona_id']) && !isset($_SESSION['id_usuario'])) {
-    header("Location: login.php");
+    header("Location: " . BASE_URL . "registro_login/login.php");
     exit();
 }
 
-require_once 'conexion.php';
+// Activar reporte de errores de MySQLi
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 // Variables de usuario robustas
 $persona_id = $_SESSION['persona_id'] ?? $_SESSION['id_usuario'] ?? $_SESSION['id'] ?? 1;
@@ -87,7 +91,7 @@ try {
 
             <div class="menu-inferior">
                 <nav class="menu">
-                    <a href="logout.php" style="color: #ef4444;">
+                    <a href="<?php echo BASE_URL; ?>registro_login/logout.php" style="color: #ef4444;">
                         <i class="ri-logout-box-r-line"></i>
                         <span>Cerrar Sesión</span>
                     </a>
@@ -161,7 +165,7 @@ try {
             </div>
 
             <footer class="footer-dashboard" style="margin-top: 40px;">
-                <p>&copy; <?php echo date('Y'); ?> Sistema de Evaluación con IA - Todos los derechos reservados.</p>
+                <p>&copy; <?php echo date('Y'); ?> SkillGap AI - Todos los derechos reservados.</p>
             </footer>
 
         </main>

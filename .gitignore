@@ -1,5 +1,6 @@
 # Archivo de configuración confidencial con la API Key
 config.php
+prueba_api.php
 
 # Archivos propios del sistema operativo o entornos locales
 .DS_Store

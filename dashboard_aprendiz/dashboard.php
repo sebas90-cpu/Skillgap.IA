@@ -1,20 +1,18 @@
 <?php
 session_start();
+require_once __DIR__ . '/../conexion.php'; 
 
 // 1. Validar sesión activa
-if (!isset($_SESSION['id_usuario']) && !isset($_SESSION['usuario']) && !isset($_SESSION['id'])) {
-    header("Location: login.php");
+if (!isset($_SESSION['id']) && !isset($_SESSION['id_usuario']) && !isset($_SESSION['usuario'])) {
+    header("Location: " . BASE_URL . "registro_login/login.php");
     exit();
 }
 
-// 2. Incluir conexión a la base de datos
-require_once 'conexion.php'; 
-
-// Activar reporte de errores
+// Activar reporte de errores estricto para MySQLi
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-// Variables de sesión (Usando la tabla 'personas')
-$persona_id = $_SESSION['persona_id'] ?? $_SESSION['id_usuario'] ?? $_SESSION['id'] ?? 0;
+// Variables de sesión (unificadas con la tabla 'personas')
+$persona_id = $_SESSION['id'] ?? $_SESSION['persona_id'] ?? $_SESSION['id_usuario'] ?? 0;
 $nombre_aprendiz = $_SESSION['nombre'] ?? $_SESSION['usuario'] ?? 'Aprendiz';
 $fichas_programa = $_SESSION['programa'] ?? 'Programa Formativo';
 
@@ -26,10 +24,10 @@ $result_historial = [];
 $result_competencias = [];
 
 // -----------------------------------------------------------------
-// 3. CONSULTAS SQL BASADAS EN TU DIAGRAMA DE BASE DE DATOS
+// 2. CONSULTAS SQL PARA MÉTRICAS DEL APRENDIZ
 // -----------------------------------------------------------------
 try {
-    // A. Evaluaciones Completadas (basado en tabla 'evaluaciones')
+    // A. Evaluaciones Completadas
     $sql_listas = "SELECT COUNT(*) as total FROM evaluaciones WHERE persona_id = ? AND fecha_fin IS NOT NULL";
     $stmt = $conexion->prepare($sql_listas);
     $stmt->bind_param("i", $persona_id);
@@ -43,7 +41,7 @@ try {
     $stmt->execute();
     $evaluaciones_proceso = $stmt->get_result()->fetch_assoc()['total'] ?? 0;
 
-    // C. Nivel Promedio / Nivel Actual (basado en tabla 'progreso')
+    // C. Nivel Promedio / Nivel Actual
     $sql_promedio = "SELECT AVG(nivel_actual) as promedio FROM progreso WHERE persona_id = ?";
     $stmt = $conexion->prepare($sql_promedio);
     $stmt->bind_param("i", $persona_id);
@@ -51,7 +49,7 @@ try {
     $prom_res = $stmt->get_result()->fetch_assoc()['promedio'];
     $promedio_general = $prom_res ? number_format($prom_res, 1) : '0.0';
 
-    // D. Últimas Evaluaciones Realizadas (Uniendo 'evaluaciones' y 'casos')
+    // D. Últimas Evaluaciones Realizadas
     $sql_historial = "SELECT c.titulo as titulo_materia, e.fecha_inicio, e.fecha_fin 
                       FROM evaluaciones e 
                       LEFT JOIN casos c ON e.caso_id = c.id 
@@ -62,7 +60,7 @@ try {
     $stmt->execute();
     $result_historial = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-    // E. Progreso de Competencias (Uniendo 'progreso' y 'competencias')
+    // E. Progreso de Competencias
     $sql_competencias = "SELECT c.nombre as tema, p.nivel_actual as porcentaje 
                           FROM progreso p 
                           INNER JOIN competencias c ON p.competencia_id = c.id 
@@ -73,7 +71,7 @@ try {
     $result_competencias = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
 } catch (Exception $e) {
-    // Si la BD aún está vacía o hay algún campo nulo, cargará en 0 limpio.
+    // Si la BD falla o no tiene registros, cargará valores en cero de forma limpia
 }
 ?>
 <!DOCTYPE html>
@@ -81,7 +79,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel del Aprendiz</title>
+    <title>Panel del Aprendiz | SkillGap AI</title>
     
     <!-- RemixIcon & Google Fonts -->
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
@@ -94,7 +92,7 @@ try {
 
     <div class="dashboard">
 
-        <!-- BARRA LATERAL CON RUTAS DE REDIRECCIÓN -->
+        <!-- BARRA LATERAL -->
         <aside class="sidebar">
             <div class="logo">
                 <i class="ri-graduation-cap-fill"></i>
@@ -128,7 +126,7 @@ try {
 
             <div class="menu-inferior">
                 <nav class="menu">
-                    <a href="logout.php" style="color: #ef4444;">
+                    <a href="<?php echo BASE_URL; ?>registro_login/logout.php" style="color: #ef4444;">
                         <i class="ri-logout-box-r-line"></i>
                         <span>Cerrar Sesión</span>
                     </a>
@@ -240,7 +238,7 @@ try {
             </div>
 
             <footer class="footer-dashboard">
-                <p>&copy; <?php echo date('Y'); ?> Sistema de Evaluación con IA - Todos los derechos reservados.</p>
+                <p>&copy; <?php echo date('Y'); ?> SkillGap AI - Sistema de Evaluación con Inteligencia Artificial.</p>
             </footer>
 
         </main>
@@ -248,4 +246,4 @@ try {
 
     <script src="dashboard.js"></script>
 </body>
-</html> 
+</html>

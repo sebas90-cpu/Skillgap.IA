@@ -1,32 +1,35 @@
 <?php
 session_start();
 
-// 1. Validar sesión de usuario
-if (!isset($_SESSION['id'])) {
-    header("Location: login.php");
+// 1. Cargar conexión y configuración desde las rutas correctas
+require_once __DIR__ . '/../conexion.php';
+require_once __DIR__ . '/config.php';
+
+// 2. Validar sesión de usuario (usando BASE_URL si existe o redirección relativa)
+if (!isset($_SESSION['id']) && !isset($_SESSION['usuario']) && !isset($_SESSION['persona_id']) && !isset($_SESSION['id_usuario'])) {
+    $redirect_url = defined('BASE_URL') ? BASE_URL . "registro_login/login.php" : "login.php";
+    header("Location: " . $redirect_url);
     exit();
 }
 
-require_once("conexion.php");
-require_once __DIR__ . "/config.php";
+// Activar reporte de errores MySQLi
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-// 2. Validar que la constante GROQ_API_KEY esté correctamente definida
+// 3. Validar que la clave GROQ_API_KEY esté definida
 if (!defined('GROQ_API_KEY') || empty(GROQ_API_KEY)) {
     die("Error de configuración: La clave 'GROQ_API_KEY' no está definida en config.php.");
 }
 
-// 3. Validar que la petición sea POST y contenga los datos necesarios
+// 4. Validar que la petición sea POST y contenga los datos necesarios
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_POST['competencia_id']) || empty($_POST['respuestas'])) {
     die("Acceso no válido o datos incompletos.");
 }
 
-$persona_id = $_SESSION['id'];
+$persona_id = $_SESSION['persona_id'] ?? $_SESSION['id_usuario'] ?? $_SESSION['id'] ?? 1;
 $competencia_id = intval($_POST['competencia_id']);
-$caso_id = isset($_POST['caso_id']) ? intval($_POST['caso_id']) : 1; 
-
 $respuestas_recibidas = $_POST['respuestas']; // Arreglo [pregunta_id => respuesta_texto]
 
-// 4. Consultar datos de la competencia
+// 5. Consultar datos de la competencia
 $stmtComp = $conexion->prepare("SELECT nombre, descripcion FROM competencias WHERE id = ?");
 $stmtComp->bind_param("i", $competencia_id);
 $stmtComp->execute();
@@ -38,9 +41,21 @@ if ($resComp->num_rows === 0) {
 
 $competencia = $resComp->fetch_assoc();
 
-// 5. Guardar las respuestas en la base de datos y construir el prompt
+// --- OBTENER EL CASO_ID ASOCIADO A LA COMPETENCIA ---
+$stmtCaso = $conexion->prepare("SELECT id FROM casos WHERE competencia_id = ? LIMIT 1");
+$stmtCaso->bind_param("i", $competencia_id);
+$stmtCaso->execute();
+$resCaso = $stmtCaso->get_result();
+
+if ($rowCaso = $resCaso->fetch_assoc()) {
+    $caso_id = intval($rowCaso['id']);
+} else {
+    die("Error: No existe un caso configurado para esta competencia. Por favor ejecuta la limpieza y reinicio de la tabla 'casos'.");
+}
+
+// 6. Guardar las respuestas en la base de datos y construir el prompt
 $prompt_casos = "";
-$todas_las_respuestas_texto = ""; 
+$todas_las_respuestas_texto = "";
 
 $stmtInsertResp = $conexion->prepare("INSERT INTO respuestas (persona_id, pregunta_id, respuesta) VALUES (?, ?, ?)");
 
@@ -73,18 +88,21 @@ foreach ($respuestas_recibidas as $pregunta_id => $texto_respuesta) {
     $i++;
 }
 
-// 6. Construcción de Instrucciones y Prompt para Groq
+// 7. Construcción de Instrucciones y Prompt para Groq
 $system_instruction = "Eres un instructor y evaluador experto en desarrollo de competencias laborales. "
                     . "Tu tarea es analizar las respuestas de un aprendiz ante un conjunto de preguntas abiertas sobre una competencia específica. "
                     . "Debes evaluar con objetividad, rigor y enfoque de desarrollo profesional.\n\n"
-                    . "DEBES responder ÚNICAMENTE con un objeto JSON estrictamente válido con la siguiente estructura:\n"
+                    . "REGLA DE FORMATO OBLIGATORIA:\n"
+                    . "Debes responder ÚNICAMENTE con un objeto JSON strictly válido. No incluyas texto antes ni después del JSON.\n"
+                    . "Si el campo 'analisis_general' contiene varios párrafos, colócalos dentro de un SOLO string separados por '\\n\\n' (NO uses comillas adicionales ni cierres el string entre párrafos).\n\n"
+                    . "Estructura JSON requerida:\n"
                     . "{\n"
                     . '  "nivel": "Inicial" | "Intermedio" | "Avanzado",' . "\n"
                     . '  "puntaje": 85,' . "\n"
                     . '  "fortalezas": ["Fortaleza 1", "Fortaleza 2"],' . "\n"
                     . '  "oportunidades": ["Oportunidad de mejora 1", "Oportunidad de mejora 2"],' . "\n"
                     . '  "recomendaciones": ["Recomendación 1", "Recomendación 2"],' . "\n"
-                    . '  "analisis_general": "Resumen cualitativo de la evaluación en 2 párrafos."' . "\n"
+                    . '  "analisis_general": "Primer párrafo del análisis.\\n\\nSegundo párrafo del análisis."' . "\n"
                     . "}";
 
 $user_prompt = "Competencia evaluada: " . $competencia['nombre'] . "\n"
@@ -92,11 +110,11 @@ $user_prompt = "Competencia evaluada: " . $competencia['nombre'] . "\n"
              . "A continuación se presentan las preguntas y respuestas entregadas por el aprendiz:\n\n"
              . $prompt_casos;
 
-// 7. Configurar la llamada a la API de Groq
+// 8. Configurar la llamada a la API de Groq
 $endpoint = "https://api.groq.com/openai/v1/chat/completions";
 
 $payload = [
-    "model" => "openai/gpt-oss-120b",
+    "model" => "qwen/qwen3.8-27b",
     "messages" => [
         [
             "role" => "system",
@@ -110,7 +128,7 @@ $payload = [
     "response_format" => [
         "type" => "json_object"
     ],
-    "temperature" => 0.2
+    "temperature" => 0.3
 ];
 
 // Petición HTTP cURL hacia Groq
@@ -124,7 +142,7 @@ curl_setopt_array($ch, [
         "Authorization: Bearer " . GROQ_API_KEY
     ],
     CURLOPT_TIMEOUT => 45,
-    CURLOPT_SSL_VERIFYPEER => false // Desactiva verificación SSL en entorno XAMPP local
+    CURLOPT_SSL_VERIFYPEER => false // Para entornos de desarrollo local en XAMPP
 ]);
 
 $response = curl_exec($ch);
@@ -135,7 +153,7 @@ if ($error) {
     die("Error de conexión cURL con la API de Groq: " . $error);
 }
 
-// 8. Procesar la respuesta JSON de Groq
+// 9. Procesar la respuesta JSON de Groq
 $resultado = json_decode($response, true);
 
 if (!isset($resultado['choices'][0]['message']['content'])) {
@@ -143,38 +161,47 @@ if (!isset($resultado['choices'][0]['message']['content'])) {
 }
 
 $raw_json = $resultado['choices'][0]['message']['content'];
+
+// Intento de decodificación directa
 $datos_ia = json_decode($raw_json, true);
+
+// Si falla la decodificación, aplicamos limpieza sobre comillas entre párrafos
+if (!$datos_ia) {
+    $cleaned_json = preg_replace('/"\s*\n\s*"/m', '\n\n', $raw_json);
+    $datos_ia = json_decode($cleaned_json, true);
+}
 
 if (!$datos_ia) {
     die("No se pudo procesar el JSON devuelto por Groq. Respuesta recibida: " . htmlspecialchars($raw_json));
 }
 
-// Extraer variables recibidas del JSON
-$nivel            = isset($datos_ia['nivel']) ? $datos_ia['nivel'] : 'Intermedio';
-$puntaje          = isset($datos_ia['puntaje']) ? floatval($datos_ia['puntaje']) : 50;
+// Extraer variables del JSON recibido
+$nivel               = $datos_ia['nivel'] ?? 'Intermedio';
+$puntaje             = isset($datos_ia['puntaje']) ? floatval($datos_ia['puntaje']) : 50;
 
-$fortalezas       = (isset($datos_ia['fortalezas']) && is_array($datos_ia['fortalezas'])) ? implode("\n• ", $datos_ia['fortalezas']) : '';
-$oportunidades    = (isset($datos_ia['oportunidades']) && is_array($datos_ia['oportunidades'])) ? implode("\n• ", $datos_ia['oportunidades']) : '';
-$recomendaciones  = (isset($datos_ia['recomendaciones']) && is_array($datos_ia['recomendaciones'])) ? implode("\n• ", $datos_ia['recomendaciones']) : '';
+$fortalezas_arr      = (isset($datos_ia['fortalezas']) && is_array($datos_ia['fortalezas'])) ? $datos_ia['fortalezas'] : [];
+$oportunidades_arr   = (isset($datos_ia['oportunidades']) && is_array($datos_ia['oportunidades'])) ? $datos_ia['oportunidades'] : [];
+$recomendaciones_arr = (isset($datos_ia['recomendaciones']) && is_array($datos_ia['recomendaciones'])) ? $datos_ia['recomendaciones'] : [];
 
-$analisis_general = isset($datos_ia['analisis_general']) ? $datos_ia['analisis_general'] : '';
+// Formateo con viñetas
+$fortalezas      = !empty($fortalezas_arr) ? "• " . implode("\n• ", $fortalezas_arr) : '';
+$oportunidades   = !empty($oportunidades_arr) ? "• " . implode("\n• ", $oportunidades_arr) : '';
+$recomendaciones = !empty($recomendaciones_arr) ? "• " . implode("\n• ", $recomendaciones_arr) : '';
 
-if (!empty($fortalezas)) $fortalezas = "• " . $fortalezas;
-if (!empty($oportunidades)) $oportunidades = "• " . $oportunidades;
-if (!empty($recomendaciones)) $recomendaciones = "• " . $recomendaciones;
+$analisis_general = $datos_ia['analisis_general'] ?? '';
 
-// 9. Guardar el análisis en la tabla 'analisis_ia'
+// 10. Guardar el análisis en la tabla 'analisis_ia'
 $stmtIA = $conexion->prepare("INSERT INTO analisis_ia (persona_id, competencia_id, nivel, fortalezas, oportunidades, recomendaciones, analisis_completo) VALUES (?, ?, ?, ?, ?, ?, ?)");
 $stmtIA->bind_param("iisssss", $persona_id, $competencia_id, $nivel, $fortalezas, $oportunidades, $recomendaciones, $analisis_general);
 
 if ($stmtIA->execute()) {
 
-    // 9.1 Guardar los datos en la tabla 'evaluaciones' para el historial (Mis Evaluaciones)
+    // 10.1 Guardar los datos en la tabla 'evaluaciones'
     $stmtEval = $conexion->prepare("INSERT INTO evaluaciones (persona_id, caso_id, respuesta, puntaje, retroalimentacion, fecha) VALUES (?, ?, ?, ?, ?, NOW())");
     $stmtEval->bind_param("iisds", $persona_id, $caso_id, $todas_las_respuestas_texto, $puntaje, $analisis_general);
     $stmtEval->execute();
 
-    // 10. Actualizar o crear el registro en 'persona_competencia' para la gráfica del Dashboard
+    // 11. Actualizar o crear el registro en 'persona_competencia'
     $stmtCheckPC = $conexion->prepare("SELECT id FROM persona_competencia WHERE persona = ? AND competencia = ?");
     $stmtCheckPC->bind_param("ii", $persona_id, $competencia_id);
     $stmtCheckPC->execute();
@@ -191,28 +218,18 @@ if ($stmtIA->execute()) {
         $stmtInsertPC->execute();
     }
 
-    // 11. Actualizar o insertar el puntaje en la tabla 'progreso'
+    // 12. Actualizar o insertar el puntaje en la tabla 'progreso'
     $stmtCheckProg = $conexion->prepare("SELECT id FROM progreso WHERE persona_id = ? AND competencia_id = ?");
-    if (!$stmtCheckProg) {
-        die("Error en prepare (SELECT progreso): " . $conexion->error);
-    }
-    
     $stmtCheckProg->bind_param("ii", $persona_id, $competencia_id);
     $stmtCheckProg->execute();
     $resProg = $stmtCheckProg->get_result();
 
     if ($resProg->num_rows > 0) {
         $stmtUpdateProg = $conexion->prepare("UPDATE progreso SET nivel_actual = ?, ultima_actualizacion = NOW() WHERE persona_id = ? AND competencia_id = ?");
-        if (!$stmtUpdateProg) {
-            die("Error en prepare (UPDATE progreso): " . $conexion->error);
-        }
         $stmtUpdateProg->bind_param("dii", $puntaje, $persona_id, $competencia_id);
         $stmtUpdateProg->execute();
     } else {
         $stmtInsertProg = $conexion->prepare("INSERT INTO progreso (persona_id, competencia_id, nivel_inicial, nivel_actual, ultima_actualizacion) VALUES (?, ?, ?, ?, NOW())");
-        if (!$stmtInsertProg) {
-            die("Error en prepare (INSERT progreso): " . $conexion->error);
-        }
         $stmtInsertProg->bind_param("iidd", $persona_id, $competencia_id, $puntaje, $puntaje);
         $stmtInsertProg->execute();
     }

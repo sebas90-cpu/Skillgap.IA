@@ -1,13 +1,14 @@
 <?php
 session_start();
 
-// 1. Validar sesión activa
+// 1. Cargar la conexión desde la raíz
+require_once __DIR__ . '/../conexion.php';
+
+// 2. Validar sesión activa (usando la constante BASE_URL)
 if (!isset($_SESSION['id']) && !isset($_SESSION['usuario']) && !isset($_SESSION['persona_id']) && !isset($_SESSION['id_usuario'])) {
-    header("Location: login.php");
+    header("Location: " . BASE_URL . "registro_login/login.php");
     exit();
 }
-
-require_once 'conexion.php';
 
 // Activar reporte de errores
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
@@ -20,7 +21,7 @@ $fichas_programa = $_SESSION['programa'] ?? 'Programa Formativo';
 $mensaje = "";
 $error = "";
 
-// 2. Procesar el formulario cuando se presione "Guardar Cambios"
+// 3. Procesar el formulario cuando se presione "Guardar Cambios"
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['actualizar_perfil'])) {
     $nuevo_nombre = trim($_POST['nombre']);
     $nuevo_apellido = trim($_POST['apellido']);
@@ -47,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['actualizar_perfil']))
     }
 }
 
-// 3. Consultar datos actuales del perfil de la base de datos
+// 4. Consultar datos actuales del perfil de la base de datos
 $datos_usuario = [];
 try {
     $stmt = $conexion->prepare("SELECT nombre, apellido, documento, correo, programa, usuario FROM personas WHERE id = ?");
@@ -79,7 +80,7 @@ try {
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- CSS Unificado del Dashboard -->
+    <!-- CSS Unificado del Dashboard con versionamiento anti-caché -->
     <link rel="stylesheet" type="text/css" href="dashboard.css?v=<?php echo time(); ?>">
 </head>
 <body>
@@ -124,7 +125,7 @@ try {
 
             <div class="menu-inferior">
                 <nav class="menu">
-                    <a href="logout.php" style="color: #ef4444;">
+                    <a href="<?php echo BASE_URL; ?>registro_login/logout.php" style="color: #ef4444;">
                         <i class="ri-logout-box-r-line"></i>
                         <span>Cerrar Sesión</span>
                     </a>
@@ -231,7 +232,7 @@ try {
             </div>
 
             <footer class="footer-dashboard" style="margin-top: 40px;">
-                <p>&copy; <?php echo date('Y'); ?> Sistema de Evaluación con IA - Todos los derechos reservados.</p>
+                <p>&copy; <?php echo date('Y'); ?> SkillGap AI - Todos los derechos reservados.</p>
             </footer>
 
         </main>

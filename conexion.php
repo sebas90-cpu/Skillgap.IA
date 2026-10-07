@@ -1,23 +1,32 @@
 <?php
+// Activar errores para diagnóstico
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
-//==========================================
-// CONEXIÓN A LA BASE DE DATOS
-//==========================================
+// Ruta absoluta en el servidor
+if (!defined('BASE_PATH')) {
+    define('BASE_PATH', __DIR__ . '/');
+}
 
-$host = "localhost";
-$usuario = "root";
-$password = "";
-$bd = "competencias_ia";
+// URL base limpia para redirecciones y enlaces
+if (!defined('BASE_URL')) {
+    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
+    $host = $_SERVER['HTTP_HOST'];
+    define('BASE_URL', $protocol . "://" . $host . "/sistemascompetenciasia/");
+}
 
-// Crear conexión
-$conexion = new mysqli($host, $usuario, $password, $bd);
+// Configuración de base de datos
+$host_db = "localhost";
+$user_db = "root";
+$pass_db = "";
+$name_db = "competencias_ia";
 
-// Verificar conexión
+$conexion = new mysqli($host_db, $user_db, $pass_db, $name_db);
+
 if ($conexion->connect_error) {
     die("Error de conexión: " . $conexion->connect_error);
 }
 
-// Configurar codificación UTF-8
-$conexion->set_charset("utf8");
-
+$conexion->set_charset("utf8mb4");
 ?>
