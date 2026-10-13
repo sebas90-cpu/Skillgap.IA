@@ -8,7 +8,7 @@ if ($_SERVER["REQUEST_METHOD"] != "POST") {
 }
 
 //==========================
-// Obtener datos
+// Obtener datos del formulario
 //==========================
 
 $nombre    = trim($_POST['nombre']);
@@ -16,7 +16,10 @@ $apellido  = trim($_POST['apellido']);
 $documento = trim($_POST['documento']);
 $correo    = trim($_POST['correo']);
 $usuario   = trim($_POST['usuario']);
-$password  = $_POST['password']; // Contraseña en texto plano
+$password  = $_POST['password']; // Contraseña recibida
+
+// Obtener el rol_id dinámicamente (por defecto 2 = Aprendiz si viene vacío)
+$rol_id    = isset($_POST['rol_id']) && !empty($_POST['rol_id']) ? intval($_POST['rol_id']) : 2;
 
 // Programa
 if (isset($_POST['programa']) && $_POST['programa'] == "Otro") {
@@ -72,21 +75,24 @@ if ($res_check->num_rows > 0) {
 $stmt_check->close();
 
 //==========================
-// Insertar usuario
+// Insertar usuario guardando el rol_id seleccionado
 //==========================
 
-$sql = "INSERT INTO personas (nombre, apellido, documento, correo, programa, usuario, password, estado, rol_id) VALUES (?, ?, ?, ?, ?, ?, ?, 'Activo', 3)";
+$sql = "INSERT INTO personas (nombre, apellido, documento, correo, programa, usuario, password, estado, rol_id) VALUES (?, ?, ?, ?, ?, ?, ?, 'Activo', ?)";
 
 $stmt = $conexion->prepare($sql);
+
+// "sssssssi" -> 7 strings y 1 entero (rol_id)
 $stmt->bind_param(
-    "sssssss",
+    "sssssssi",
     $nombre,
     $apellido,
     $documento,
     $correo,
     $programa,
     $usuario,
-    $password
+    $password,
+    $rol_id
 );
 
 if ($stmt->execute()) {

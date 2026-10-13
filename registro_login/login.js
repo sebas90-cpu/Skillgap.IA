@@ -75,6 +75,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
                 return;
             }
+
+            // OPCIONAL: Bloquear botón de envío para evitar doble clic
+            const btnSubmit = formLogin.querySelector("button[type='submit']");
+            if (btnSubmit) {
+                btnSubmit.disabled = true;
+                btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Validando...';
+            }
         });
     }
 });

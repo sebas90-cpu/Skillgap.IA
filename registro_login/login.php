@@ -2,13 +2,23 @@
 require_once __DIR__ . '/../conexion.php';
 session_start();
 
-// Redireccionar si el usuario ya inició sesión previamente
-if (isset($_SESSION['id'])) {
-    if ($_SESSION['rol_id'] == 1) {
-        header("Location: " . BASE_URL . "dashboard_instructor/dashboard.php");
-    } else {
-        header("Location: " . BASE_URL . "dashboard_aprendiz/dashboard.php");
+// Redireccionar si el usuario ya inició sesión previamente según su rol_id
+if (isset($_SESSION['id']) || isset($_SESSION['persona_id'])) {
+    $rol = $_SESSION['rol_id'] ?? 2;
+
+    switch (intval($rol)) {
+        case 1: // Administrador
+            $redirect = BASE_URL . "dashboard_admin/dashboard_admin.php";
+            break;
+        case 3: // Evaluador / Instructor
+            $redirect = BASE_URL . "dashboard_ins/dashboard_ins.php";
+            break;
+        case 2: // Aprendiz
+        default:
+            $redirect = BASE_URL . "dashboard_aprendiz/dashboard.php";
+            break;
     }
+    header("Location: " . $redirect);
     exit();
 }
 ?>
@@ -22,7 +32,7 @@ if (isset($_SESSION['id'])) {
 
     <title>Iniciar Sesión | SkillGap AI</title>
 
-    <!-- Enlace corregido usando la constante BASE_URL -->
+    <!-- Enlace usando la constante BASE_URL -->
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>estilos.css?v=<?php echo time(); ?>">
 
     <!-- Google Fonts -->
@@ -57,16 +67,16 @@ if (isset($_SESSION['id'])) {
             <h2>Bienvenido</h2>
             <p class="subtitulo">Ingresa tus credenciales para continuar.</p>
 
-            <!-- Usuario -->
+            <!-- Usuario o Correo -->
             <div class="grupo">
-                <label>Usuario</label>
+                <label>Usuario o Correo</label>
                 <div class="input-icon">
                     <i class="fa-solid fa-user"></i>
                     <input
                         type="text"
                         name="usuario"
                         id="usuario"
-                        placeholder="Ingrese su usuario"
+                        placeholder="Ingrese su usuario o correo"
                         required>
                 </div>
             </div>

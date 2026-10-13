@@ -37,6 +37,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const documento = document.getElementById("documento");
     const correo = document.getElementById("correo");
     const usuario = document.getElementById("usuario");
+    const rolSelect = document.getElementById("rol_id");
+
+    // Rol de usuario (Cambia borde según selección)
+    if (rolSelect) {
+        rolSelect.addEventListener("change", () => {
+            rolSelect.style.borderColor = rolSelect.value !== "" ? "#22c55e" : "#ef4444";
+        });
+    }
 
     // Nombre
     if (nombre) {
@@ -108,6 +116,7 @@ document.addEventListener("DOMContentLoaded", () => {
         formulario.addEventListener("submit", function (e) {
             e.preventDefault();
 
+            const valRol = document.getElementById("rol_id")?.value.trim() || "";
             const valNombre = document.getElementById("nombre")?.value.trim() || "";
             const valApellido = document.getElementById("apellido")?.value.trim() || "";
             const valDocumento = document.getElementById("documento")?.value.trim() || "";
@@ -118,7 +127,17 @@ document.addEventListener("DOMContentLoaded", () => {
             const valPassword = document.getElementById("password")?.value || "";
             const valConfirmar = document.getElementById("confirmar")?.value || "";
 
-            // 1. Campos vacíos
+            // 1. Validar selección de rol obligatoria
+            if (!valRol) {
+                Swal.fire({
+                    icon: "warning",
+                    title: "Rol no seleccionado",
+                    text: "Por favor, seleccione su rol en la plataforma (Aprendiz o Evaluador)."
+                });
+                return;
+            }
+
+            // 2. Campos vacíos principales
             if (!valNombre || !valApellido || !valDocumento || !valCorreo || !valPrograma || !valUsuario || !valPassword || !valConfirmar) {
                 Swal.fire({
                     icon: "warning",
@@ -138,7 +157,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            // 2. Contraseñas iguales
+            // 3. Contraseñas iguales
             if (valPassword !== valConfirmar) {
                 Swal.fire({
                     icon: "error",
@@ -148,7 +167,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            // 3. Requisitos de contraseña segura
+            // 4. Requisitos de contraseña segura
             const regexPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
             if (!regexPassword.test(valPassword)) {
                 Swal.fire({
@@ -165,7 +184,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            // 4. Confirmación e intercepción antes de enviar al backend
+            // 5. Confirmación e intercepción antes de enviar al backend
             Swal.fire({
                 title: "¿Registrar usuario?",
                 text: "Se creará una nueva cuenta en la plataforma.",

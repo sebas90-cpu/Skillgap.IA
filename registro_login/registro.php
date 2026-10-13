@@ -2,11 +2,15 @@
 require_once __DIR__ . '/../conexion.php';
 session_start();
 
-// Si ya hay una sesión activa, redirigir según el rol
-if (isset($_SESSION['id'])) {
-    if ($_SESSION['rol_id'] == 1) {
-        header("Location: " . BASE_URL . "dashboard_instructor/dashboard.php");
-    } else {
+// Si ya hay una sesión activa, redirigir según el rol_id de la BD
+if (isset($_SESSION['id']) || isset($_SESSION['persona_id'])) {
+    $rol = $_SESSION['rol_id'] ?? 2;
+    
+    if ($rol == 3) { // Evaluador / Instructor
+        header("Location: " . BASE_URL . "dashboard_ins/dashboard_ins.php");
+    } else if ($rol == 1) { // Administrador
+        header("Location: " . BASE_URL . "dashboard_admin/dashboard_admin.php");
+    } else { // Aprendiz (rol_id = 2)
         header("Location: " . BASE_URL . "dashboard_aprendiz/dashboard.php");
     }
     exit();
@@ -22,7 +26,7 @@ if (isset($_SESSION['id'])) {
 
     <title>Registro | SkillGap AI</title>
 
-    <!-- Enlace corregido usando la constante BASE_URL -->
+    <!-- Enlace con la constante BASE_URL -->
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>estilos.css?v=<?php echo time(); ?>">
 
     <!-- Google Fonts -->
@@ -62,6 +66,30 @@ if (isset($_SESSION['id'])) {
         <form id="formRegistro" method="POST" action="guardar_usuario.php">
 
             <h2>Crear Cuenta</h2>
+
+            <!-- NUEVO: Selector Desplegable de Rol desde la BD -->
+            <div class="grupo">
+                <label>Rol de Usuario</label>
+                <div class="input-icon">
+                    <i class="fa-solid fa-user-gear"></i>
+                    <select name="rol_id" id="rol_id" required>
+                        <option value="" disabled selected>Seleccione un rol</option>
+                        <?php
+                        // Consulta directa a la tabla 'roles' ordenados por id
+                        $resRoles = $conexion->query("SELECT id, nombre FROM roles WHERE id IN (2, 3) ORDER BY id ASC");
+                        if ($resRoles && $resRoles->num_rows > 0) {
+                            while ($rol = $resRoles->fetch_assoc()) {
+                                echo '<option value="' . $rol['id'] . '">' . htmlspecialchars($rol['nombre']) . '</option>';
+                            }
+                        } else {
+                            // Fallback de seguridad con tus IDs exactos
+                            echo '<option value="2">Aprendiz</option>';
+                            echo '<option value="3">Evaluador</option>';
+                        }
+                        ?>
+                    </select>
+                </div>
+            </div>
 
             <div class="grupo">
                 <label>Nombre</label>
