@@ -22,15 +22,16 @@ $total_aprendices = $conexion->query("SELECT COUNT(*) AS total FROM personas WHE
 $total_evaluaciones = $conexion->query("SELECT COUNT(*) AS total FROM evaluaciones")->fetch_assoc()['total'] ?? 0;
 $promedio_general = $conexion->query("SELECT AVG(puntaje) AS promedio FROM evaluaciones")->fetch_assoc()['promedio'] ?? 0;
 
-// 3. Consultar Últimas Evaluaciones de Aprendices
+// 3. Consultar Últimas Evaluaciones de Aprendices (Sin duplicados por GROUP BY e.id)
 $queryEvaluaciones = "
     SELECT 
+        e.id AS evaluacion_id,
         p.id AS persona_id,
         p.nombre,
         p.apellido,
         p.programa,
         c.nombre AS competencia_nombre,
-        a.nivel,
+        MAX(a.nivel) AS nivel,
         e.puntaje,
         e.fecha
     FROM evaluaciones e
@@ -38,6 +39,7 @@ $queryEvaluaciones = "
     INNER JOIN casos cs ON e.caso_id = cs.id
     INNER JOIN competencias c ON cs.competencia_id = c.id
     LEFT JOIN analisis_ia a ON (a.persona_id = e.persona_id AND a.competencia_id = c.id)
+    GROUP BY e.id
     ORDER BY e.fecha DESC
     LIMIT 10
 ";
@@ -62,17 +64,20 @@ $resEvaluaciones = $conexion->query($queryEvaluaciones);
 <div class="dashboard">
     <!-- BARRA LATERAL (INSTRUCTOR) -->
     <aside class="sidebar">
-        <div class="logo">
-            <i class="ri-user-star-fill"></i>
-            <h2>Portal<br>Instructor</h2>
+        <div class="sidebar-top">
+            <div class="logo">
+                <i class="ri-user-star-fill"></i>
+                <h2>Portal<br>Instructor</h2>
+            </div>
+            <span class="titulo-menu">MENÚ GENERAL</span>
+            <nav class="menu">
+                <a href="dashboard_ins.php" class="active"><i class="ri-dashboard-line"></i><span>Panel Principal</span></a>
+                <a href="aprendices.php"><i class="ri-group-line"></i><span>Aprendices</span></a>
+                <a href="competencias.php"><i class="ri-award-line"></i><span>Competencias</span></a>
+                <a href="reportes.php"><i class="ri-bar-chart-box-line"></i><span>Reportes IA</span></a>
+            </nav>
         </div>
-        <span class="titulo-menu">MENÚ GENERAL</span>
-        <nav class="menu">
-            <a href="dashboard_ins.php" class="active"><i class="ri-dashboard-line"></i><span>Panel Principal</span></a>
-            <a href="aprendices.php"><i class="ri-group-line"></i><span>Aprendices</span></a>
-            <a href="competencias.php"><i class="ri-award-line"></i><span>Competencias</span></a>
-            <a href="reportes.php"><i class="ri-bar-chart-box-line"></i><span>Reportes IA</span></a>
-        </nav>
+
         <div class="menu-inferior">
             <nav class="menu">
                 <!-- APUNTA AL LOGOUT LOCAL DE LA MISMA CARPETA -->

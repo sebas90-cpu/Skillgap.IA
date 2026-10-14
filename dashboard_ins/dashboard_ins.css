@@ -34,13 +34,19 @@ body {
     z-index: 100;
 }
 
+/* Contenedor Superior (Logo + Navegación) */
+.sidebar-top {
+    display: flex;
+    flex-direction: column;
+}
+
 .sidebar .logo {
     display: flex;
     align-items: center;
     gap: 12px;
     padding-bottom: 24px;
     border-bottom: 1px solid #334155;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
 }
 
 .sidebar .logo i {
@@ -53,16 +59,18 @@ body {
     font-weight: 700;
     line-height: 1.2;
     color: #FFFFFF;
+    margin: 0;
 }
 
 .titulo-menu {
     font-size: 11px;
     font-weight: 600;
     color: #64748B;
-    letter-spacing: 0.5px;
-    margin-bottom: 12px;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
     display: block;
-    padding-left: 12px;
+    padding-left: 14px; /* Perfectamente alineado con el texto de los botones */
 }
 
 .menu {
@@ -95,19 +103,22 @@ body {
 
 .menu a.active {
     background-color: #2563EB;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
 }
 
-.menu a.btn-logout {
-    color: #EF4444;
-}
-
-.menu a.btn-logout:hover {
-    background-color: rgba(239, 68, 68, 0.1);
-}
-
+/* Sección Inferior (Cerrar Sesión) */
 .menu-inferior {
     border-top: 1px solid #334155;
     padding-top: 16px;
+}
+
+.menu-inferior a.btn-logout {
+    color: #EF4444;
+}
+
+.menu-inferior a.btn-logout:hover {
+    background-color: rgba(239, 68, 68, 0.12);
+    color: #F87171;
 }
 
 /* Área de Contenido Principal */
@@ -155,7 +166,7 @@ body {
     color: #64748B;
 }
 
-/* Grilla de Metricas (KPIs) */
+/* Grilla de Métricas (KPIs) */
 .kpi-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -223,7 +234,7 @@ table.tabla-custom {
 }
 
 table.tabla-custom th, table.tabla-custom td {
-    padding: 12px 16px;
+    padding: 14px 16px;
     text-align: left;
     border-bottom: 1px solid #F1F5F9;
     font-size: 14px;
@@ -253,8 +264,9 @@ table.tabla-custom th {
 .badge-intermedio { background: #EFF6FF; color: #2563EB; }
 .badge-avanzado { background: #DCFCE7; color: #166534; }
 
-/* Botones */
+/* Botones de Acción en Tablas */
 .btn-tabla-action {
+    display: inline-block;
     padding: 6px 14px;
     font-size: 12px;
     font-weight: 500;
@@ -263,10 +275,376 @@ table.tabla-custom th {
     border: 1px solid #BFDBFE;
     border-radius: 8px;
     text-decoration: none;
+    white-space: nowrap; /* Impide que 'Ver Detalle' se divida en dos filas */
     transition: all 0.2s ease;
 }
 
 .btn-tabla-action:hover {
     background-color: #2563EB;
     color: #FFFFFF;
+}
+
+/* Ajuste de espacio en la última columna de la tabla */
+table.tabla-custom th:last-child,
+table.tabla-custom td:last-child {
+    white-space: nowrap;
+    text-align: right;
+}
+
+/* ==========================================================================
+   Estilos Específicos para Vista Detalle Aprendiz (ver_aprendiz.php)
+   ========================================================================== */
+
+/* Botón Volver */
+.btn-volver {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background-color: #FFFFFF;
+    color: #475569;
+    border: 1px solid #CBD5E1;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-volver:hover {
+    background-color: #F1F5F9;
+    color: #0F172A;
+}
+
+/* Tarjeta Perfil */
+.perfil-card {
+    background: #FFFFFF;
+    border-radius: 16px;
+    padding: 24px 30px;
+    border: 1px solid #E2E8F0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.perfil-info {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.perfil-avatar {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, #2563EB, #1D4ED8);
+    color: #FFFFFF;
+    font-size: 22px;
+    font-weight: 700;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.perfil-datos h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #0F172A;
+    margin-bottom: 6px;
+}
+
+.perfil-datos p {
+    font-size: 13px;
+    color: #64748B;
+    margin: 2px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.perfil-kpis {
+    display: flex;
+    gap: 20px;
+}
+
+.mini-kpi {
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    padding: 12px 20px;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.mini-kpi span {
+    font-size: 11px;
+    color: #64748B;
+    text-transform: uppercase;
+    font-weight: 600;
+    display: block;
+}
+
+.mini-kpi h3 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #2563EB;
+    margin-top: 4px;
+}
+
+/* Título Sección */
+.seccion-titulo {
+    font-size: 18px;
+    font-weight: 600;
+    color: #0F172A;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Grilla Evaluaciones */
+.evaluaciones-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.evaluacion-card {
+    background: #FFFFFF;
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid #E2E8F0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.eval-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.eval-header h4 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #0F172A;
+}
+
+.eval-fecha {
+    font-size: 12px;
+    color: #94A3B8;
+}
+
+.eval-puntaje-box {
+    background: #EFF6FF;
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.puntaje-label {
+    font-size: 13px;
+    color: #1E40AF;
+    font-weight: 500;
+}
+
+.puntaje-valor {
+    font-size: 16px;
+    font-weight: 700;
+    color: #2563EB;
+}
+
+/* Bloques IA */
+.ia-bloque {
+    background: #F8FAFC;
+    border-left: 4px solid #3B82F6;
+    padding: 12px 14px;
+    border-radius: 0 8px 8px 0;
+}
+
+.ia-bloque h5 {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1E293B;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ia-bloque p {
+    font-size: 13px;
+    color: #475569;
+    line-height: 1.5;
+}
+
+.bloque-fortalezas {
+    border-left-color: #10B981;
+}
+
+.bloque-mejora {
+    border-left-color: #F59E0B;
+}
+/* ==========================================================================
+   Barra de Filtros y Búsqueda (aprendices.php)
+   ========================================================================== */
+.filtros-bar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.input-search {
+    position: relative;
+    flex: 1;
+    min-width: 260px;
+}
+
+.input-search i {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94A3B8;
+    font-size: 18px;
+}
+
+.input-search input {
+    width: 100%;
+    padding: 10px 14px 10px 40px;
+    background: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    border-radius: 10px;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.input-search input:focus {
+    border-color: #2563EB;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.select-filtro {
+    padding: 10px 14px;
+    background: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    border-radius: 10px;
+    font-size: 14px;
+    color: #334155;
+    outline: none;
+    cursor: pointer;
+}
+
+.btn-filtrar {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    background: #2563EB;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.btn-filtrar:hover {
+    background: #1D4ED8;
+}
+
+.btn-limpiar {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    background: #F1F5F9;
+    color: #475569;
+    border: 1px solid #CBD5E1;
+    border-radius: 10px;
+    font-size: 14px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.btn-limpiar:hover {
+    background: #E2E8F0;
+    color: #0F172A;
+}
+/* ==========================================================================
+   Estilos de Competencias (competencias.php)
+   ========================================================================== */
+.competencias-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.competencia-card {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.competencia-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+}
+
+.comp-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.comp-icon {
+    width: 48px;
+    height: 48px;
+    background: #EFF6FF;
+    color: #2563EB;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.comp-header h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0F172A;
+    margin-bottom: 4px;
+}
+
+.comp-desc {
+    font-size: 13px;
+    color: #64748B;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    flex-grow: 1;
+}
+
+.comp-footer {
+    margin-top: auto;
+    padding-top: 16px;
+    border-top: 1px solid #F1F5F9;
 }
