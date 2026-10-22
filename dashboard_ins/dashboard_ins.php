@@ -80,7 +80,6 @@ $resEvaluaciones = $conexion->query($queryEvaluaciones);
 
         <div class="menu-inferior">
             <nav class="menu">
-                <!-- APUNTA AL LOGOUT LOCAL DE LA MISMA CARPETA -->
                 <a href="logout.php" class="btn-logout"><i class="ri-logout-box-r-line"></i><span>Cerrar Sesión</span></a>
             </nav>
         </div>
@@ -88,8 +87,8 @@ $resEvaluaciones = $conexion->query($queryEvaluaciones);
 
     <!-- CONTENIDO PRINCIPAL -->
     <main class="contenido">
-        <!-- BARRA SUPERIOR -->
-        <div class="barra-superior">
+        <!-- BARRA SUPERIOR CON ACCIONES RÁPIDAS -->
+        <div class="barra-superior" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
             <div class="usuario-info">
                 <div class="usuario-avatar"><?= strtoupper(substr($nombre_instructor, 0, 1)) ?></div>
                 <div class="usuario-texto">
@@ -97,9 +96,20 @@ $resEvaluaciones = $conexion->query($queryEvaluaciones);
                     <span>Instructor / Evaluador</span>
                 </div>
             </div>
+
+            <!-- BOTONES DE ACCIÓN RÁPIDA -->
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <a href="crear_evaluacion.php" class="btn-filtrar" style="padding: 10px 18px; text-decoration: none; font-size: 13px; background: #2563EB; color: #FFFFFF; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px;">
+                    <i class="ri-add-circle-line" style="font-size: 16px;"></i> Crear Evaluación
+                </a>
+
+                <a href="competencias.php" class="btn-filtrar" style="padding: 10px 18px; text-decoration: none; font-size: 13px; background: #F1F5F9; color: #1E293B; border: 1px solid #CBD5E1; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px;">
+                    <i class="ri-settings-4-line" style="font-size: 16px;"></i> Gestionar Evaluaciones
+                </a>
+            </div>
         </div>
 
-        <!-- TARJETAS METRICAS (KPIs) -->
+        <!-- TARJETAS MÉTRICAS (KPIs) -->
         <div class="kpi-grid">
             <div class="kpi-card">
                 <div class="kpi-icon icon-blue"><i class="ri-group-line"></i></div>
@@ -145,7 +155,7 @@ $resEvaluaciones = $conexion->query($queryEvaluaciones);
                             <?php 
                                 $nivel_class = 'badge-intermedio';
                                 $nivel_txt = $row['nivel'] ?? 'Intermedio';
-                                if (strpos(strtolower($nivel_txt), 'inicial') !== false) $nivel_class = 'badge-inicial';
+                                if (strpos(strtolower($nivel_txt), 'inicial') !== false || strpos(strtolower($nivel_txt), 'básico') !== false) $nivel_class = 'badge-inicial';
                                 if (strpos(strtolower($nivel_txt), 'avanzado') !== false) $nivel_class = 'badge-avanzado';
                             ?>
                             <tr>
